@@ -29,6 +29,8 @@ h1{font-size:20px;margin:4px 0 2px}
 .tab.off{opacity:.45}
 .note{font-size:12px;color:var(--muted);margin:8px 0}
 .tab.today:not(.on){border-color:var(--wyklad)}
+.today-btn{display:block;margin:10px auto 0;border:1px solid var(--wyklad);background:var(--card);color:var(--wyklad);border-radius:99px;padding:6px 16px;font-size:13px;cursor:pointer}
+.today-btn[hidden]{display:none}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -48,6 +50,7 @@ h1{font-size:20px;margin:4px 0 2px}
 <div class="sub">Wzornictwo przemysłowe · rok 2 · sem. 3 (zimowy) 2026/2027</div>
 <div class="nav"><button id="prev">‹</button><div id="wk"></div><button id="next">›</button></div>
 <div class="tabs" id="tabs"></div>
+<button class="today-btn" id="todaybtn" hidden></button>
 <div class="legend">
 <span><i class="dot" style="background:var(--wyklad)"></i>Wykład</span>
 <span><i class="dot" style="background:var(--cwiczenia)"></i>Ćwiczenia</span>
@@ -98,11 +101,16 @@ var rows=CAL.map(function(r){var p=r[0].split("-"),m=Date.UTC(+p[0],+p[1]-1,+p[2
 function fmt(ms){var d=new Date(ms);return d.getUTCDate()+"."+String(d.getUTCMonth()+1).padStart(2,"0")}
 function ok(z,ab,n){if(!z.tyg)return true;if(z.tyg==="A"||z.tyg==="B")return z.tyg===ab;return n>=z.tyg[0]&&n<=z.tyg[1]}
 function lab(z){return z.tyg==="A"?"tydzień I (A)":z.tyg==="B"?"tydzień II (B)":"tyg. "+z.tyg[0]+"–"+z.tyg[1]}
-var now=new Date(),tms=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()),jd=now.getDay(),ri=0;
-for(var i=0;i<rows.length;i++){if(rows[i].m<=tms)ri=i}
-var sel=jd>=1&&jd<=5?jd:1;
-if((jd===0||jd===6)&&tms>=rows[0].m&&ri<rows.length-1)ri++;
+function home(){
+  var n=new Date(),t=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()),j=n.getDay(),r=0;
+  for(var i=0;i<rows.length;i++){if(rows[i].m<=t)r=i}
+  var wknd=(j===0||j===6);
+  if(wknd&&t>=rows[0].m&&r<rows.length-1)r++;
+  return{ri:r,sel:wknd?1:j,tms:t,wknd:wknd};
+}
+var H0=home(),tms=H0.tms,ri=H0.ri,sel=H0.sel;
 function render(){
+  var H=home();tms=H.tms;
   var r=rows[ri];
   document.getElementById("wk").innerHTML="Tydzień "+(r.ab==="A"?"I (A)":"II (B)")+"<small>"+fmt(r.m)+" – "+fmt(r.m+4*DAY)+"</small>";
   var t=document.getElementById("tabs");t.innerHTML="";
@@ -126,8 +134,12 @@ function render(){
     }).join(""):'<div class="empty">Brak zajęć 🎉</div>';
   }
   document.getElementById("list").innerHTML=html;
+  var tb=document.getElementById("todaybtn");
+  tb.textContent=H.wknd?"↩ Poniedziałek":"↩ Dziś";
+  tb.hidden=(ri===H.ri&&sel===H.sel);
   document.getElementById("upd").textContent="Źródło: "+PLAN.updated+" · kalendarz wg Zarządzenia R-45/2026";
 }
+document.getElementById("todaybtn").onclick=function(){var H=home();ri=H.ri;sel=H.sel;render()};
 document.getElementById("prev").onclick=function(){if(ri>0){ri--;render()}};
 document.getElementById("next").onclick=function(){if(ri<rows.length-1){ri++;render()}};
 render();
