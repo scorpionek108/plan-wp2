@@ -31,6 +31,11 @@ h1{font-size:20px;margin:4px 0 2px}
 .tab.today:not(.on){border-color:var(--wyklad)}
 .today-btn{display:block;margin:10px auto 0;border:1px solid var(--wyklad);background:var(--card);color:var(--wyklad);border-radius:99px;padding:6px 16px;font-size:13px;cursor:pointer}
 .today-btn[hidden]{display:none}
+.card.past{opacity:.5}
+.card.now{box-shadow:0 0 0 2px var(--c)}
+.prog{height:6px;background:var(--line);border-radius:99px;margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--c);border-radius:99px}
+.progt{font-size:12px;color:var(--muted);margin-top:4px}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -109,6 +114,9 @@ function home(){
   return{ri:r,sel:wknd?1:j,tms:t,wknd:wknd};
 }
 var H0=home(),tms=H0.tms,ri=H0.ri,sel=H0.sel;
+function mins(t){var p=t.split(":");return +p[0]*60+ +p[1]}
+function nowMin(){var d=new Date();return d.getHours()*60+d.getMinutes()}
+function dur(m){return m<60?m+" min":Math.floor(m/60)+" g"+(m%60?" "+(m%60)+" min":"")}
 function render(){
   var H=home();tms=H.tms;
   var r=rows[ri];
@@ -126,11 +134,20 @@ function render(){
     var sub=Array.isArray(c),n=sub?c[0]:c,pd=sub?c[1]:sel;
     if(sub)html+='<div class="note">Tego dnia zajęcia odbywają się według planu '+DNIP[pd-1]+'.</div>';
     var it=PLAN.zajecia.filter(function(z){return z.d===pd&&ok(z,r.ab,n)}).sort(function(a,b){return a.s.localeCompare(b.s)});
-    html+=it.length?it.map(function(z){
-      return '<div class="card" style="--c:'+KOLOR[z.t]+'"><div class="time">'+z.s+'<span>'+z.k+'</span></div><div class="info"><div class="name">'+esc(z.p)+'</div>'+
+    var isToday=(r.m+(sel-1)*DAY===tms),nm=nowMin();
+    html+=it.length?it.map(function(z,i){
+      var cls="card",extra="";
+      if(isToday){
+        var s0=mins(z.s),k0=mins(z.k);
+        if(nm>=k0){cls+=" past"}
+        else if(nm>=s0){var pct=Math.round((nm-s0)/(k0-s0)*100);cls+=" now";
+          extra='<div class="prog"><i style="width:'+pct+'%"></i></div><div class="progt">trwa · '+pct+'% · zostało '+dur(k0-nm)+'</div>'}
+        else{extra='<div class="progt">⏳ za '+dur(s0-nm)+'</div>'}
+      }
+      return '<div class="'+cls+'" style="--c:'+KOLOR[z.t]+'"><div class="time">'+z.s+'<span>'+z.k+'</span></div><div class="info"><div class="name">'+esc(z.p)+'</div>'+
       '<span class="badge">'+esc(z.t)+'</span>'+(z.tyg?'<span class="badge w">'+lab(z)+'</span>':'')+
       '<div class="row">📍 Sala '+esc(z.r)+'</div><div class="row">🏛 '+wydzial(z.r)+'</div>'+
-      (z.w?'<div class="row">👤 '+esc(z.w)+'</div>':'')+'</div></div>';
+      (z.w?'<div class="row">👤 '+esc(z.w)+'</div>':'')+extra+'</div></div>';
     }).join(""):'<div class="empty">Brak zajęć 🎉</div>';
   }
   document.getElementById("list").innerHTML=html;
@@ -143,6 +160,8 @@ document.getElementById("todaybtn").onclick=function(){var H=home();ri=H.ri;sel=
 document.getElementById("prev").onclick=function(){if(ri>0){ri--;render()}};
 document.getElementById("next").onclick=function(){if(ri<rows.length-1){ri++;render()}};
 render();
+setInterval(function(){if(rows[ri].m+(sel-1)*DAY===home().tms)render()},30000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
 // Na hostingu z plikiem data/plan.json (np. GitHub Pages) aplikacja pobiera aktualny plan;
 // bez niego pokazuje dane wbudowane powyżej.
 try{fetch("data/plan.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.zajecia&&j.zajecia.length){PLAN=j;render()}}).catch(function(){})}catch(e){}
