@@ -36,6 +36,9 @@ h1{font-size:20px;margin:4px 0 2px}
 .prog{height:6px;background:var(--line);border-radius:99px;margin-top:8px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--c);border-radius:99px}
 .progt{font-size:12px;color:var(--muted);margin-top:4px}
+.nb{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c,var(--wyklad));border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.5;cursor:pointer}
+.nb[hidden]{display:none}
+.nb b{font-size:14px}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -53,6 +56,7 @@ h1{font-size:20px;margin:4px 0 2px}
 <body>
 <h1>Plan zajęć</h1>
 <div class="sub">Wzornictwo przemysłowe · rok 2 · sem. 3 (zimowy) 2026/2027</div>
+<div class="nb" id="nb" hidden></div>
 <div class="nav"><button id="prev">‹</button><div id="wk"></div><button id="next">›</button></div>
 <div class="tabs" id="tabs"></div>
 <button class="today-btn" id="todaybtn" hidden></button>
@@ -117,8 +121,39 @@ var H0=home(),tms=H0.tms,ri=H0.ri,sel=H0.sel;
 function mins(t){var p=t.split(":");return +p[0]*60+ +p[1]}
 function nowMin(){var d=new Date();return d.getHours()*60+d.getMinutes()}
 function dur(m){return m<60?m+" min":Math.floor(m/60)+" g"+(m%60?" "+(m%60)+" min":"")}
+var DZ=["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+function nowDate(){return new Date()}
+function durL(m){return m>=1440?Math.floor(m/1440)+" d "+Math.floor(m%1440/60)+" g":dur(m)}
+function nextClass(){
+  var now=nowDate(),best=null;
+  for(var i=0;i<rows.length;i++){
+    for(var d=1;d<=5;d++){
+      var c=rows[i].c[d-1];if(c===null)continue;
+      var sub=Array.isArray(c),n=sub?c[0]:c,pd=sub?c[1]:d,D=new Date(rows[i].m+(d-1)*DAY);
+      for(var j=0;j<PLAN.zajecia.length;j++){
+        var z=PLAN.zajecia[j];
+        if(z.d!==pd||!ok(z,rows[i].ab,n))continue;
+        var p=z.s.split(":"),when=new Date(D.getUTCFullYear(),D.getUTCMonth(),D.getUTCDate(),+p[0],+p[1]);
+        if(when>now&&(!best||when<best.when))best={z:z,when:when,ri:i,d:d};
+      }
+    }
+  }
+  return best;
+}
+function updateBanner(){
+  var b=document.getElementById("nb"),x=nextClass();
+  if(!x){b.hidden=true;return}
+  var now=nowDate(),m=Math.ceil((x.when-now)/60000);
+  var t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()),t1=new Date(x.when.getFullYear(),x.when.getMonth(),x.when.getDate());
+  var dd=Math.round((t1-t0)/864e5);
+  var kiedy=dd===0?"dziś":dd===1?"jutro":DZ[x.when.getDay()]+" "+x.when.getDate()+"."+String(x.when.getMonth()+1).padStart(2,"0");
+  b.style.setProperty("--c",KOLOR[x.z.t]);
+  b.innerHTML='⏭ Następne: <b>'+esc(x.z.p)+'</b><br>'+kiedy+' '+x.z.s+' · za '+durL(m);
+  b.hidden=false;
+  b.onclick=function(){ri=x.ri;sel=x.d;render()};
+}
 function render(){
-  var H=home();tms=H.tms;
+  var H=home();tms=H.tms;updateBanner();
   var r=rows[ri];
   document.getElementById("wk").innerHTML="Tydzień "+(r.ab==="A"?"I (A)":"II (B)")+"<small>"+fmt(r.m)+" – "+fmt(r.m+4*DAY)+"</small>";
   var t=document.getElementById("tabs");t.innerHTML="";
@@ -160,7 +195,7 @@ document.getElementById("todaybtn").onclick=function(){var H=home();ri=H.ri;sel=
 document.getElementById("prev").onclick=function(){if(ri>0){ri--;render()}};
 document.getElementById("next").onclick=function(){if(ri<rows.length-1){ri++;render()}};
 render();
-setInterval(function(){if(rows[ri].m+(sel-1)*DAY===home().tms)render()},30000);
+setInterval(function(){updateBanner();if(rows[ri].m+(sel-1)*DAY===home().tms)render()},30000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
 // Na hostingu z plikiem data/plan.json (np. GitHub Pages) aplikacja pobiera aktualny plan;
 // bez niego pokazuje dane wbudowane powyżej.
