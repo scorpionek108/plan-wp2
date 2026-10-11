@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plan zajęć – Wzornictwo Przemysłowe</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f4f5fb;--card:#fff;--text:#1d2033;--muted:#6b7089;--line:#e3e5f0;
+--wyklad:#6c5ce7;--cwiczenia:#00b894;--lab:#e17055;--projekt:#0984e3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12131c;--card:#1c1e2b;--text:#eceefb;--muted:#9a9fba;--line:#2b2e40}}
+:root[data-theme="dark"]{--bg:#12131c;--card:#1c1e2b;--text:#eceefb;--muted:#9a9fba;--line:#2b2e40}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:560px;margin-inline:auto;padding:16px}
+h1{font-size:20px;margin:4px 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nav button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;width:40px;height:36px;font-size:18px;cursor:pointer}
+.nav div{text-align:center;font-size:14px}.nav small{display:block;color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:6px}
+.tab{flex:1;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:8px 2px;font-size:13px;cursor:pointer;text-align:center}
+.tab b{display:block;font-size:15px}
+.tab.on{background:var(--wyklad);border-color:var(--wyklad);color:#fff}
+.tab.off{opacity:.45}
+.note{font-size:12px;color:var(--muted);margin:8px 0}
+.tab.today:not(.on){border-color:var(--wyklad)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.time{min-width:52px;text-align:center;font-variant-numeric:tabular-nums;font-size:14px;line-height:1.4}
+.time span{color:var(--muted);font-size:12px;display:block}
+.info{flex:1;min-width:0}
+.name{font-weight:650;font-size:15px;margin-bottom:4px}
+.badge{display:inline-block;background:var(--c);color:#fff;font-size:11px;padding:2px 8px;border-radius:99px;margin:0 4px 6px 0}
+.badge.w{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.row{font-size:13px;color:var(--muted);line-height:1.5}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+.upd{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<h1>Plan zajęć</h1>
+<div class="sub">Wzornictwo przemysłowe · rok 2 · sem. 3 (zimowy) 2026/2027</div>
+<div class="nav"><button id="prev">‹</button><div id="wk"></div><button id="next">›</button></div>
+<div class="tabs" id="tabs"></div>
+<div class="legend">
+<span><i class="dot" style="background:var(--wyklad)"></i>Wykład</span>
+<span><i class="dot" style="background:var(--cwiczenia)"></i>Ćwiczenia</span>
+<span><i class="dot" style="background:var(--lab)"></i>Laboratorium</span>
+<span><i class="dot" style="background:var(--projekt)"></i>Projekt</span>
+</div>
+<div id="list"></div>
+<div class="upd" id="upd"></div>
+
+<script>
+// tyg: brak = co tydzień; "A" = tydzień I; "B" = tydzień II; [od,do] = zakres tygodni zajęć (numer liczony osobno dla każdego dnia tygodnia)
+var PLAN={updated:"harmonogram WM PL, grupa GWY=GĆW=GLA01",zajecia:[
+{d:1,s:"08:15",k:"10:00",p:"Technologia maszyn",t:"laboratorium",r:"M331",w:"dr inż. Kamil Anasiewicz",tyg:"A"},
+{d:1,s:"08:15",k:"10:00",p:"Technologia maszyn",t:"projekt",r:"M331",w:"dr inż. Kamil Anasiewicz",tyg:"B"},
+{d:1,s:"10:15",k:"12:00",p:"Technologia maszyn",t:"wykład",r:"M-XIV",w:"dr inż. Kamil Anasiewicz",tyg:"A"},
+{d:1,s:"12:15",k:"14:00",p:"Rachunek prawdopodobieństwa i statystyka",t:"laboratorium",r:"M814",w:"dr Katarzyna Trąbka-Więcław"},
+{d:1,s:"14:15",k:"16:00",p:"Tworzywa i kompozyty polimerowe",t:"wykład",r:"M-VI",w:"dr inż. Tomasz Jachowicz"},
+{d:1,s:"16:15",k:"18:00",p:"Tworzywa i kompozyty polimerowe",t:"laboratorium",r:"CI509D",w:"dr inż. Tomasz Jachowicz"},
+{d:2,s:"10:15",k:"12:00",p:"Materiałoznawstwo II",t:"wykład",r:"CI516c",w:"dr inż. Magda Droździel-Jurkiewicz"},
+{d:2,s:"12:15",k:"14:00",p:"Materiałoznawstwo II",t:"laboratorium",r:"CI516c",w:"dr inż. Magda Droździel-Jurkiewicz"},
+{d:2,s:"14:15",k:"16:00",p:"Rachunek prawdopodobieństwa i statystyka",t:"wykład",r:"M-IV",w:"dr Katarzyna Trąbka-Więcław",tyg:"A"},
+{d:2,s:"16:30",k:"18:00",p:"Historia kultury materialnej i wzornictwa",t:"wykład",r:"M-VI",w:"dr Paulina Zarębska-Denysiuk"},
+{d:3,s:"12:15",k:"14:00",p:"Język nowożytny I",t:"ćwiczenia",r:"M420",w:""},
+{d:3,s:"16:05",k:"17:45",p:"Identyfikacja wizualna",t:"projekt",r:"ISP, s. 15",w:"dr Michał Ćwiek"},
+{d:4,s:"08:15",k:"09:00",p:"Komputerowe systemy wspomagania projektowania I",t:"wykład",r:"M214",w:"dr hab. inż. Paweł Wysmulski"},
+{d:4,s:"09:15",k:"11:00",p:"Komputerowe systemy wspomagania projektowania I",t:"laboratorium",r:"M214",w:"dr hab. inż. Paweł Wysmulski"},
+{d:4,s:"11:10",k:"11:55",p:"Ochrona własności intelektualnej",t:"wykład",r:"M518",w:"dr inż. Aneta Tor-Świątek",tyg:[1,15]},
+{d:4,s:"12:00",k:"13:45",p:"Fizyka",t:"wykład",r:"AII",w:"dr hab. Wiesław Polak, prof. uczelni"},
+{d:4,s:"14:00",k:"16:15",p:"Fizyka",t:"laboratorium",r:"CI519B/C",w:"dr hab. Wiesław Polak, prof. uczelni",tyg:[6,15]}
+]};
+var DNI=["Pon","Wt","Śr","Czw","Pt"],DNIP=["poniedziałku","wtorku","środy","czwartku","piątku"];
+var KOLOR={"wykład":"var(--wyklad)","ćwiczenia":"var(--cwiczenia)","laboratorium":"var(--lab)","projekt":"var(--projekt)"};
+function wydzial(r){return /^CI/.test(r)?"Centrum Innowacji i Zaawansowanych Technologii":/^ISP/.test(r)?"Wydział Artystyczny UMCS":"Wydział Mechaniczny"}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+// Kalendarz sem. zimowego 2026/2027 (Zarządzenie Nr R-45/2026 Rektora PL).
+// [poniedziałek tygodnia, [Pn,Wt,Śr,Cz,Pt]]; komórka: numer tygodnia zajęć dla tego dnia tygodnia,
+// [nr, dzień planu] = zajęcia wg planu innego dnia (1=Pn..5=Pt), null = brak zajęć.
+var CAL=[
+["2026-09-28",[null,null,null,1,1]],["2026-10-05",[1,1,1,2,2]],["2026-10-12",[2,2,2,3,3]],
+["2026-10-19",[3,3,3,4,4]],["2026-10-26",[4,4,4,5,5]],["2026-11-02",[5,5,5,6,6]],
+["2026-11-09",[6,6,null,7,[6,3]]],["2026-11-16",[7,7,7,8,7]],["2026-11-23",[8,8,8,9,8]],
+["2026-11-30",[9,9,9,10,9]],["2026-12-07",[10,10,10,11,10]],["2026-12-14",[11,11,11,12,11]],
+["2026-12-21",[12,12,null,null,null]],["2027-01-04",[null,null,null,[12,3],12]],
+["2027-01-11",[13,13,13,13,13]],["2027-01-18",[14,14,14,14,14]],["2027-01-25",[15,15,15,15,15]]
+];
+var DAY=864e5,T0=Date.UTC(2026,8,28);
+var rows=CAL.map(function(r){var p=r[0].split("-"),m=Date.UTC(+p[0],+p[1]-1,+p[2]);return{m:m,ab:Math.round((m-T0)/(7*DAY))%2===0?"A":"B",c:r[1]}});
+function fmt(ms){var d=new Date(ms);return d.getUTCDate()+"."+String(d.getUTCMonth()+1).padStart(2,"0")}
+function ok(z,ab,n){if(!z.tyg)return true;if(z.tyg==="A"||z.tyg==="B")return z.tyg===ab;return n>=z.tyg[0]&&n<=z.tyg[1]}
+function lab(z){return z.tyg==="A"?"tydzień I (A)":z.tyg==="B"?"tydzień II (B)":"tyg. "+z.tyg[0]+"–"+z.tyg[1]}
+var now=new Date(),tms=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()),jd=now.getDay(),ri=0;
+for(var i=0;i<rows.length;i++){if(rows[i].m<=tms)ri=i}
+var sel=jd>=1&&jd<=5?jd:1;
+if((jd===0||jd===6)&&tms>=rows[0].m&&ri<rows.length-1)ri++;
+function render(){
+  var r=rows[ri];
+  document.getElementById("wk").innerHTML="Tydzień "+(r.ab==="A"?"I (A)":"II (B)")+"<small>"+fmt(r.m)+" – "+fmt(r.m+4*DAY)+"</small>";
+  var t=document.getElementById("tabs");t.innerHTML="";
+  for(var d=1;d<=5;d++){(function(d){
+    var b=document.createElement("button"),ms=r.m+(d-1)*DAY;
+    b.className="tab"+(d===sel?" on":"")+(ms===tms?" today":"")+(r.c[d-1]===null?" off":"");
+    b.innerHTML=DNI[d-1]+"<b>"+new Date(ms).getUTCDate()+"</b>";
+    b.onclick=function(){sel=d;render()};t.appendChild(b);
+  })(d)}
+  var c=r.c[sel-1],html="";
+  if(c===null){html='<div class="empty">Brak zajęć w tym dniu</div>'}
+  else{
+    var sub=Array.isArray(c),n=sub?c[0]:c,pd=sub?c[1]:sel;
+    if(sub)html+='<div class="note">Tego dnia zajęcia odbywają się według planu '+DNIP[pd-1]+'.</div>';
+    var it=PLAN.zajecia.filter(function(z){return z.d===pd&&ok(z,r.ab,n)}).sort(function(a,b){return a.s.localeCompare(b.s)});
+    html+=it.length?it.map(function(z){
+      return '<div class="card" style="--c:'+KOLOR[z.t]+'"><div class="time">'+z.s+'<span>'+z.k+'</span></div><div class="info"><div class="name">'+esc(z.p)+'</div>'+
+      '<span class="badge">'+esc(z.t)+'</span>'+(z.tyg?'<span class="badge w">'+lab(z)+'</span>':'')+
+      '<div class="row">📍 Sala '+esc(z.r)+'</div><div class="row">🏛 '+wydzial(z.r)+'</div>'+
+      (z.w?'<div class="row">👤 '+esc(z.w)+'</div>':'')+'</div></div>';
+    }).join(""):'<div class="empty">Brak zajęć 🎉</div>';
+  }
+  document.getElementById("list").innerHTML=html;
+  document.getElementById("upd").textContent="Źródło: "+PLAN.updated+" · kalendarz wg Zarządzenia R-45/2026";
+}
+document.getElementById("prev").onclick=function(){if(ri>0){ri--;render()}};
+document.getElementById("next").onclick=function(){if(ri<rows.length-1){ri++;render()}};
+render();
+// Na hostingu z plikiem data/plan.json (np. GitHub Pages) aplikacja pobiera aktualny plan;
+// bez niego pokazuje dane wbudowane powyżej.
+try{fetch("data/plan.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.zajecia&&j.zajecia.length){PLAN=j;render()}}).catch(function(){})}catch(e){}
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+{
+ "updated": "plan z wm.pollub.pl, pobrany 2026-10-11",
+ "zajecia": [
+  {
+   "d": 1,
+   "p": "Technologia maszyn",
+   "t": "laboratorium",
+   "s": "08:15",
+   "k": "10:00",
+   "r": "M331",
+   "w": "dr inż. Kamil Anasiewicz",
+   "tyg": "A"
+  },
+  {
+   "d": 1,
+   "p": "Technologia maszyn",
+   "t": "projekt",
+   "s": "08:15",
+   "k": "10:00",
+   "r": "M331",
+   "w": "dr inż. Kamil Anasiewicz",
+   "tyg": "B"
+  },
+  {
+   "d": 1,
+   "p": "Technologia maszyn",
+   "t": "wykład",
+   "s": "10:15",
+   "k": "12:00",
+   "r": "M-XIV",
+   "w": "dr inż. Kamil Anasiewicz",
+   "tyg": "A"
+  },
+  {
+   "d": 1,
+   "p": "Rachunek prawdopodobieństwa i statystyka",
+   "t": "laboratorium",
+   "s": "12:15",
+   "k": "14:00",
+   "r": "M814",
+   "w": "dr Katarzyna Trąbka-Więcław"
+  },
+  {
+   "d": 1,
+   "p": "Tworzywa i kompozyty polimerowe",
+   "t": "wykład",
+   "s": "14:15",
+   "k": "16:00",
+   "r": "M-VI",
+   "w": "dr inż. Tomasz Jachowicz"
+  },
+  {
+   "d": 1,
+   "p": "Tworzywa i kompozyty polimerowe",
+   "t": "laboratorium",
+   "s": "16:15",
+   "k": "18:00",
+   "r": "CI509D",
+   "w": "dr inż. Tomasz Jachowicz"
+  },
+  {
+   "d": 2,
+   "p": "Materiałoznawstwo II",
+   "t": "wykład",
+   "s": "10:15",
+   "k": "12:00",
+   "r": "CI516c",
+   "w": "dr inż. Magda Droździel-Jurkiewicz"
+  },
+  {
+   "d": 2,
+   "p": "Materiałoznawstwo II",
+   "t": "laboratorium",
+   "s": "12:15",
+   "k": "14:00",
+   "r": "CI516c",
+   "w": "dr inż. Magda Droździel-Jurkiewicz"
+  },
+  {
+   "d": 2,
+   "p": "Rachunek prawdopodobieństwa i statystyka",
+   "t": "wykład",
+   "s": "14:15",
+   "k": "16:00",
+   "r": "M-IV",
+   "w": "dr Katarzyna Trąbka-Więcław",
+   "tyg": "A"
+  },
+  {
+   "d": 2,
+   "p": "Historia kultury materialnej i wzornictwa",
+   "t": "wykład",
+   "s": "16:30",
+   "k": "18:00",
+   "r": "M-VI",
+   "w": "dr Paulina Zarębska-Denysiuk"
+  },
+  {
+   "d": 3,
+   "p": "Język nowożytny I",
+   "t": "ćwiczenia",
+   "s": "12:15",
+   "k": "14:00",
+   "r": "M420",
+   "w": ""
+  },
+  {
+   "d": 3,
+   "p": "Identyfikacja wizualna",
+   "t": "projekt",
+   "s": "16:05",
+   "k": "17:45",
+   "r": "ISP, s. 15",
+   "w": "dr Michał Ćwiek"
+  },
+  {
+   "d": 4,
+   "p": "Komputerowe systemy wspomagania projektowania I",
+   "t": "wykład",
+   "s": "08:15",
+   "k": "09:00",
+   "r": "M214",
+   "w": "dr hab. inż. Paweł Wysmulski"
+  },
+  {
+   "d": 4,
+   "p": "Komputerowe systemy wspomagania projektowania I",
+   "t": "laboratorium",
+   "s": "09:15",
+   "k": "11:00",
+   "r": "M214",
+   "w": "dr hab. inż. Paweł Wysmulski"
+  },
+  {
+   "d": 4,
+   "p": "Ochrona własności intelektualnej",
+   "t": "wykład",
+   "s": "11:10",
+   "k": "11:55",
+   "r": "M518",
+   "w": "dr inż. Aneta Tor-Świątek",
+   "tyg": [
+    1,
+    15
+   ]
+  },
+  {
+   "d": 4,
+   "p": "Fizyka",
+   "t": "wykład",
+   "s": "12:00",
+   "k": "13:45",
+   "r": "AII",
+   "w": "dr hab. Wiesław Polak, prof. uczelni"
+  },
+  {
+   "d": 4,
+   "p": "Fizyka",
+   "t": "laboratorium",
+   "s": "14:00",
+   "k": "16:15",
+   "r": "CI519B/C",
+   "w": "dr hab. Wiesław Polak, prof. uczelni",
+   "tyg": [
+    6,
+    15
+   ]
+  }
+ ]
+}
