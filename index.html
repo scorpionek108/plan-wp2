@@ -64,6 +64,11 @@ h1{font-size:20px;margin:4px 0 2px}
 .btns .pri{background:var(--wyklad);border-color:var(--wyklad);color:#fff}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:#1d2033;color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;z-index:20;max-width:90%}
 .toast[hidden]{display:none}
+.chg{background:var(--card);border:1px solid var(--line);border-left:6px solid #fdcb6e;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px}
+.chg[hidden]{display:none}
+.chg ul{margin:6px 0 8px;padding-left:18px}
+.chg li{margin:3px 0}
+.chg button{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:10px;padding:6px 12px;font-size:13px;cursor:pointer}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -82,6 +87,7 @@ h1{font-size:20px;margin:4px 0 2px}
 <div class="top"><h1>Plan zajęć</h1><div class="tools"><button id="shareBtn" aria-label="Udostępnij link">↗</button><button id="themeBtn" aria-label="Zmień motyw">🌙</button></div></div>
 <div class="sub">Wzornictwo przemysłowe · rok 2 · sem. 3 (zimowy) 2026/2027</div>
 <div class="nb" id="nb" hidden></div>
+<div class="chg" id="chg" hidden></div>
 <div class="nav"><button id="prev">‹</button><div id="wk"></div><button id="next">›</button></div>
 <div class="tabs" id="tabs"></div>
 <button class="today-btn" id="todaybtn" hidden></button>
@@ -186,7 +192,13 @@ function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 var NOTES=lsGet("notes",{}),DL=lsGet("deadlines",[]),curISO="",curItems=[];
 function iso(ms){var d=new Date(ms);return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0")}
-function ckey(z){return z.d+"|"+z.s+"|"+z.p+"|"+z.t}
+function ckey(z){return z.d+"|"+z.p+"|"+z.t} // bez godziny: notatka przeżyje przesunięcie zajęć
+(function(){var ch=false,out={};
+  Object.keys(NOTES).forEach(function(k){var q=k.split("|"),nk=k;
+    if(k.charAt(0)==="d"&&q.length===5)nk=q[0]+"|"+q[1]+"|"+q[3]+"|"+q[4];
+    else if(k.charAt(0)==="g"&&q.length===4)nk=q[0]+"|"+q[2]+"|"+q[3];
+    if(nk!==k)ch=true;out[nk]=NOTES[k]});
+  if(ch){NOTES=out;lsSet("notes",NOTES)}})();
 function noteHtml(z){
   var nd=NOTES["d:"+curISO+"|"+ckey(z)],ng=NOTES["g:"+ckey(z)];
   return (ng?'<div class="cnote">📌 '+esc(ng)+'</div>':'')+(nd?'<div class="cnote">📝 '+esc(nd)+'</div>':'');
@@ -261,6 +273,40 @@ document.getElementById("shareBtn").onclick=function(){
   else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast("Link skopiowany")},function(){toast(url)})}
   else{toast(url)}
 };
+// ---- wykrywanie zmian w planie (porównanie z ostatnio zatwierdzoną wersją) ----
+function ident(z){return z.p+"|"+z.t+"|"+JSON.stringify(z.tyg||null)}
+function zdesc(z){return z.p+" ("+z.t+") "+DNI[z.d-1]+" "+z.s+"–"+z.k+", sala "+z.r}
+function planDiff(a,b){
+  var ma={},mb={},keys=[],out=[];
+  a.forEach(function(z){var k=ident(z);if(!ma[k]){ma[k]=[];keys.push(k)}ma[k].push(z)});
+  b.forEach(function(z){var k=ident(z);if(!mb[k]){mb[k]=[];if(!ma[k])keys.push(k)}mb[k].push(z)});
+  keys.forEach(function(k){
+    var x=ma[k]||[],y=mb[k]||[],n=Math.max(x.length,y.length);
+    for(var i=0;i<n;i++){
+      var p=x[i],q=y[i];
+      if(p&&!q)out.push("➖ "+zdesc(p)+" – usunięte");
+      else if(!p&&q)out.push("➕ "+zdesc(q)+" – nowe");
+      else{
+        var c=[];
+        if(p.d!==q.d)c.push("dzień: "+DNI[p.d-1]+" → "+DNI[q.d-1]);
+        if(p.s!==q.s||p.k!==q.k)c.push("godz. "+p.s+"–"+p.k+" → "+q.s+"–"+q.k);
+        if(p.r!==q.r)c.push("sala "+p.r+" → "+q.r);
+        if((p.w||"")!==(q.w||""))c.push("prowadzący: "+(p.w||"brak")+" → "+(q.w||"brak"));
+        if(c.length)out.push("✏️ "+q.p+" ("+q.t+"): "+c.join(", "));
+      }
+    }
+  });
+  return out;
+}
+function checkChanges(){
+  var seen=lsGet("seenPlan",null),cur=PLAN.zajecia,box=document.getElementById("chg");
+  if(!seen){lsSet("seenPlan",cur);return}
+  var d=planDiff(seen,cur);
+  if(!d.length)return;
+  box.innerHTML='<b>🔔 Plan się zmienił</b><ul>'+d.map(function(x){return"<li>"+esc(x)+"</li>"}).join("")+'</ul><button id="chgOk">Rozumiem</button>';
+  box.hidden=false;
+  document.getElementById("chgOk").onclick=function(){lsSet("seenPlan",cur);box.hidden=true};
+}
 function render(){
   var H=home();tms=H.tms;updateBanner();
   var r=rows[ri];curISO=iso(r.m+(sel-1)*DAY);curItems=[];
@@ -309,7 +355,7 @@ setInterval(function(){updateBanner();renderDl();if(rows[ri].m+(sel-1)*DAY===hom
 document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
 // Na hostingu z plikiem data/plan.json (np. GitHub Pages) aplikacja pobiera aktualny plan;
 // bez niego pokazuje dane wbudowane powyżej.
-try{fetch("data/plan.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.zajecia&&j.zajecia.length){PLAN=j;render()}}).catch(function(){})}catch(e){}
+try{fetch("data/plan.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.zajecia&&j.zajecia.length){PLAN=j;render();checkChanges()}}).catch(function(){})}catch(e){}
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}
 </script>
 </body>
