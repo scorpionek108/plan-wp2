@@ -39,6 +39,31 @@ h1{font-size:20px;margin:4px 0 2px}
 .nb{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--c,var(--wyklad));border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px;line-height:1.5;cursor:pointer}
 .nb[hidden]{display:none}
 .nb b{font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;width:38px;height:36px;font-size:17px;cursor:pointer}
+.hint{font-size:12px;color:var(--muted);margin:2px 0 4px}
+.card{cursor:pointer}
+.cnote{font-size:13px;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg);white-space:pre-wrap;word-break:break-word}
+.dl{margin-top:22px}
+.dlh{display:flex;justify-content:space-between;align-items:center}
+.dlh button,.btns button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:7px 12px;font-size:13px;cursor:pointer}
+.dli{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--card);border-radius:12px;padding:10px 12px;margin:8px 0;border-left:6px solid #fdcb6e;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.dli.past{opacity:.5}
+.dli.due{border-left-color:#e17055}
+.dlt{font-weight:600;font-size:14px}
+.dli button{border:none;background:transparent;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 8px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.ov[hidden]{display:none}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto}
+.sheet label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+.sheet textarea,.sheet input{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);padding:9px;font:inherit;font-size:14px}
+.sheet textarea{min-height:70px}
+.muted{color:var(--muted);font-size:13px}
+.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btns .pri{background:var(--wyklad);border-color:var(--wyklad);color:#fff}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:#1d2033;color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;z-index:20;max-width:90%}
+.toast[hidden]{display:none}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:12px 0 2px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
 .card{background:var(--card);border-radius:14px;padding:12px 14px;margin:10px 0;border-left:6px solid var(--c);display:flex;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -54,7 +79,7 @@ h1{font-size:20px;margin:4px 0 2px}
 </style>
 </head>
 <body>
-<h1>Plan zajęć</h1>
+<div class="top"><h1>Plan zajęć</h1><div class="tools"><button id="shareBtn" aria-label="Udostępnij link">↗</button><button id="themeBtn" aria-label="Zmień motyw">🌙</button></div></div>
 <div class="sub">Wzornictwo przemysłowe · rok 2 · sem. 3 (zimowy) 2026/2027</div>
 <div class="nb" id="nb" hidden></div>
 <div class="nav"><button id="prev">‹</button><div id="wk"></div><button id="next">›</button></div>
@@ -66,9 +91,13 @@ h1{font-size:20px;margin:4px 0 2px}
 <span><i class="dot" style="background:var(--lab)"></i>Laboratorium</span>
 <span><i class="dot" style="background:var(--projekt)"></i>Projekt</span>
 </div>
+<div class="hint">Dotknij zajęć, aby dodać notatkę.</div>
 <div id="list"></div>
+<div class="dl"><div class="dlh"><b>📌 Moje terminy</b><button id="addDl">＋ Dodaj</button></div><div id="dlList"></div></div>
 <div class="upd" id="upd"></div>
 
+<div class="ov" id="ov" hidden><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" hidden></div>
 <script>
 // tyg: brak = co tydzień; "A" = tydzień I; "B" = tydzień II; [od,do] = zakres tygodni zajęć (numer liczony osobno dla każdego dnia tygodnia)
 var PLAN={updated:"harmonogram WM PL, grupa GWY=GĆW=GLA01",zajecia:[
@@ -152,9 +181,89 @@ function updateBanner(){
   b.hidden=false;
   b.onclick=function(){ri=x.ri;sel=x.d;render()};
 }
+// ---- pamięć lokalna: notatki, terminy, motyw (tylko na tym urządzeniu) ----
+function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+var NOTES=lsGet("notes",{}),DL=lsGet("deadlines",[]),curISO="",curItems=[];
+function iso(ms){var d=new Date(ms);return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0")}
+function ckey(z){return z.d+"|"+z.s+"|"+z.p+"|"+z.t}
+function noteHtml(z){
+  var nd=NOTES["d:"+curISO+"|"+ckey(z)],ng=NOTES["g:"+ckey(z)];
+  return (ng?'<div class="cnote">📌 '+esc(ng)+'</div>':'')+(nd?'<div class="cnote">📝 '+esc(nd)+'</div>':'');
+}
+function toast(m){var t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(function(){t.hidden=true},2200)}
+var ov=document.getElementById("ov"),sheet=document.getElementById("sheet");
+function openSheet(html){sheet.innerHTML=html;ov.hidden=false}
+function closeSheet(){ov.hidden=true}
+ov.addEventListener("click",function(e){if(e.target===ov)closeSheet()});
+function setNote(k,v){v=v.trim();if(v)NOTES[k]=v;else delete NOTES[k]}
+function openNote(z){
+  var k=ckey(z),dk="d:"+curISO+"|"+k,gk="g:"+k,p=curISO.split("-");
+  openSheet('<b>'+esc(z.p)+'</b> <span class="muted">('+esc(z.t)+', '+z.s+'–'+z.k+')</span>'+
+    '<label>Notatka tylko na ten dzień ('+(+p[2])+'.'+p[1]+')</label><textarea id="nd">'+esc(NOTES[dk]||"")+'</textarea>'+
+    '<label>Stała notatka do tych zajęć (przy każdym terminie)</label><textarea id="ng">'+esc(NOTES[gk]||"")+'</textarea>'+
+    '<div class="btns"><button id="cx">Anuluj</button><button class="pri" id="sv">Zapisz</button></div>');
+  document.getElementById("cx").onclick=closeSheet;
+  document.getElementById("sv").onclick=function(){
+    setNote(dk,document.getElementById("nd").value);setNote(gk,document.getElementById("ng").value);
+    lsSet("notes",NOTES);closeSheet();render();
+  };
+}
+document.getElementById("list").addEventListener("click",function(e){
+  var c=e.target.closest?e.target.closest(".card"):null;if(!c)return;
+  var i=c.getAttribute("data-i");if(i!==null&&curItems[+i])openNote(curItems[+i]);
+});
+function ddiff(s){var p=s.split("-"),n=new Date(),t0=new Date(n.getFullYear(),n.getMonth(),n.getDate()),t1=new Date(+p[0],+p[1]-1,+p[2]);return Math.round((t1-t0)/864e5)}
+function dlText(x){
+  var dd=ddiff(x.d);
+  if(dd<0)return"minął ("+(-dd)+" d temu)";
+  if(dd===0){if(!x.h)return"dziś";var q=x.h.split(":"),m=(+q[0]*60+ +q[1])-nowMin();return m>0?"dziś "+x.h+" · za "+dur(m):"dziś "+x.h+" (minęło)"}
+  if(dd===1)return"jutro"+(x.h?" "+x.h:"");
+  return"za "+dd+" dni"+(x.h?" · "+x.h:"");
+}
+function renderDl(){
+  var L=DL.slice().sort(function(a,b){return (a.d+(a.h||"23:59")).localeCompare(b.d+(b.h||"23:59"))});
+  document.getElementById("dlList").innerHTML=L.length?L.map(function(x){
+    var p=x.d.split("-");
+    return '<div class="dli'+(ddiff(x.d)<0?' past':'')+'"><div><div class="dlt">'+esc(x.t)+'</div><div class="row">'+(+p[2])+'.'+p[1]+'.'+p[0]+' · '+dlText(x)+'</div></div><button data-del="'+x.id+'" aria-label="Usuń termin">✕</button></div>';
+  }).join(""):'<div class="row">Brak terminów. Dodaj kolokwium, oddanie projektu itp.</div>';
+}
+function dlPre(){
+  return DL.filter(function(x){return x.d===curISO}).map(function(x){
+    return '<div class="dli due"><div class="dlt">📌 '+esc(x.t)+(x.h?' · '+x.h:'')+'</div></div>';
+  }).join("");
+}
+document.getElementById("dlList").addEventListener("click",function(e){
+  var id=e.target.getAttribute&&e.target.getAttribute("data-del");if(!id)return;
+  if(confirm("Usunąć ten termin?")){DL=DL.filter(function(x){return x.id!==id});lsSet("deadlines",DL);renderDl();render()}
+});
+document.getElementById("addDl").onclick=function(){
+  openSheet('<b>Nowy termin</b><label>Co to jest?</label><input type="text" id="dt" placeholder="np. Kolokwium z fizyki">'+
+    '<label>Data</label><input type="date" id="dd"><label>Godzina (opcjonalnie)</label><input type="time" id="dh">'+
+    '<div class="btns"><button id="cx">Anuluj</button><button class="pri" id="sv">Dodaj</button></div>');
+  var n=new Date();document.getElementById("dd").value=n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");
+  document.getElementById("cx").onclick=closeSheet;
+  document.getElementById("sv").onclick=function(){
+    var t=document.getElementById("dt").value.trim(),d=document.getElementById("dd").value,h=document.getElementById("dh").value;
+    if(!t||!d){toast("Wpisz nazwę i datę");return}
+    DL.push({id:Date.now().toString(36),t:t,d:d,h:h||""});lsSet("deadlines",DL);closeSheet();renderDl();render();
+  };
+};
+var themeBtn=document.getElementById("themeBtn");
+function effTheme(){var t=document.documentElement.getAttribute("data-theme");if(t)return t;return window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);themeBtn.textContent=t==="dark"?"☀️":"🌙";var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="dark"?"#12131c":"#6c5ce7")}
+var savedTheme=lsGet("theme",null);
+if(savedTheme)applyTheme(savedTheme);else themeBtn.textContent=effTheme()==="dark"?"☀️":"🌙";
+themeBtn.onclick=function(){var t=effTheme()==="dark"?"light":"dark";lsSet("theme",t);applyTheme(t)};
+document.getElementById("shareBtn").onclick=function(){
+  var url=location.origin+location.pathname,data={title:"Plan zajęć – wzornictwo przemysłowe, rok 2",text:"Plan zajęć (WM PL, wzornictwo przemysłowe, rok 2) – aktualizuje się sam:",url:url};
+  if(navigator.share){navigator.share(data).catch(function(){})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast("Link skopiowany")},function(){toast(url)})}
+  else{toast(url)}
+};
 function render(){
   var H=home();tms=H.tms;updateBanner();
-  var r=rows[ri];
+  var r=rows[ri];curISO=iso(r.m+(sel-1)*DAY);curItems=[];
   document.getElementById("wk").innerHTML="Tydzień "+(r.ab==="A"?"I (A)":"II (B)")+"<small>"+fmt(r.m)+" – "+fmt(r.m+4*DAY)+"</small>";
   var t=document.getElementById("tabs");t.innerHTML="";
   for(var d=1;d<=5;d++){(function(d){
@@ -170,8 +279,9 @@ function render(){
     if(sub)html+='<div class="note">Tego dnia zajęcia odbywają się według planu '+DNIP[pd-1]+'.</div>';
     var it=PLAN.zajecia.filter(function(z){return z.d===pd&&ok(z,r.ab,n)}).sort(function(a,b){return a.s.localeCompare(b.s)});
     var isToday=(r.m+(sel-1)*DAY===tms),nm=nowMin();
+    curItems=it;
     html+=it.length?it.map(function(z,i){
-      var cls="card",extra="";
+      var cls="card",extra="",nt=noteHtml(z);
       if(isToday){
         var s0=mins(z.s),k0=mins(z.k);
         if(nm>=k0){cls+=" past"}
@@ -179,13 +289,13 @@ function render(){
           extra='<div class="prog"><i style="width:'+pct+'%"></i></div><div class="progt">trwa · '+pct+'% · zostało '+dur(k0-nm)+'</div>'}
         else{extra='<div class="progt">⏳ za '+dur(s0-nm)+'</div>'}
       }
-      return '<div class="'+cls+'" style="--c:'+KOLOR[z.t]+'"><div class="time">'+z.s+'<span>'+z.k+'</span></div><div class="info"><div class="name">'+esc(z.p)+'</div>'+
+      return '<div class="'+cls+'" data-i="'+i+'" style="--c:'+KOLOR[z.t]+'"><div class="time">'+z.s+'<span>'+z.k+'</span></div><div class="info"><div class="name">'+esc(z.p)+'</div>'+
       '<span class="badge">'+esc(z.t)+'</span>'+(z.tyg?'<span class="badge w">'+lab(z)+'</span>':'')+
       '<div class="row">📍 Sala '+esc(z.r)+'</div><div class="row">🏛 '+wydzial(z.r)+'</div>'+
-      (z.w?'<div class="row">👤 '+esc(z.w)+'</div>':'')+extra+'</div></div>';
+      (z.w?'<div class="row">👤 '+esc(z.w)+'</div>':'')+nt+extra+'</div></div>';
     }).join(""):'<div class="empty">Brak zajęć 🎉</div>';
   }
-  document.getElementById("list").innerHTML=html;
+  document.getElementById("list").innerHTML=dlPre()+html;renderDl();
   var tb=document.getElementById("todaybtn");
   tb.textContent=H.wknd?"↩ Poniedziałek":"↩ Dziś";
   tb.hidden=(ri===H.ri&&sel===H.sel);
@@ -195,7 +305,7 @@ document.getElementById("todaybtn").onclick=function(){var H=home();ri=H.ri;sel=
 document.getElementById("prev").onclick=function(){if(ri>0){ri--;render()}};
 document.getElementById("next").onclick=function(){if(ri<rows.length-1){ri++;render()}};
 render();
-setInterval(function(){updateBanner();if(rows[ri].m+(sel-1)*DAY===home().tms)render()},30000);
+setInterval(function(){updateBanner();renderDl();if(rows[ri].m+(sel-1)*DAY===home().tms)render()},30000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
 // Na hostingu z plikiem data/plan.json (np. GitHub Pages) aplikacja pobiera aktualny plan;
 // bez niego pokazuje dane wbudowane powyżej.
